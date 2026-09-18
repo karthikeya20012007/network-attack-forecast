@@ -35,8 +35,8 @@ def normalize_col(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", str(name).lower())
 
 
-class LSTMWorldModel(nn.Module):
-    """Three-head LSTM World Model for network state dynamics.
+class TGAT_WorldModel(nn.Module):
+    """TGAT World Model architecture (Temporal Graph Attention Network).
     Identical to notebook Cell 7 — required to load the saved state_dict.
     """
 
@@ -53,6 +53,7 @@ class LSTMWorldModel(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
+        # 1. Temporal Backbone (Extracts raw node features)
         self.lstm = nn.LSTM(
             input_size=state_dim,
             hidden_size=hidden_size,
@@ -60,21 +61,31 @@ class LSTMWorldModel(nn.Module):
             batch_first=True,
             dropout=dropout if num_layers > 1 else 0.0,
         )
+        
+        # 2. Graph Attention Network (GAT) Layer
+        # Projects node features into Graph space
+        self.W_query = nn.Linear(hidden_size, hidden_size)
+        self.W_key = nn.Linear(hidden_size, hidden_size)
+        self.W_value = nn.Linear(hidden_size, hidden_size)
+        
         self.ln = nn.LayerNorm(hidden_size)
         self.backbone_drop = nn.Dropout(dropout)
 
+        # 3. Prediction Heads
         self.state_head = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
             nn.Dropout(dropout * 0.5),
             nn.Linear(hidden_size, state_dim),
         )
+
         self.attack_head = nn.Sequential(
             nn.Linear(hidden_size, 64),
             nn.ReLU(),
             nn.Dropout(dropout * 0.5),
             nn.Linear(64, 1),
         )
+
         self.mitre_head = nn.Sequential(
             nn.Linear(hidden_size, 64),
             nn.ReLU(),
@@ -83,23 +94,38 @@ class LSTMWorldModel(nn.Module):
         )
 
     def forward(self, x, hc=None):
+        import math
         if hc is not None:
-            hc = (
-                hc[0].transpose(0, 1).contiguous(),
-                hc[1].transpose(0, 1).contiguous(),
-            )
+            hc = (hc[0].transpose(0, 1).contiguous(), hc[1].transpose(0, 1).contiguous())
 
-        output, (h_n, c_n) = self.lstm(x, hc)
-        h_last = output[:, -1, :]
-        h_last = self.ln(h_last)
-        h_last = self.backbone_drop(h_last)
+        # --- STEP 1: NODE FEATURE EXTRACTION ---
+        node_features, (h_n, c_n) = self.lstm(x, hc)
+        
+        # --- STEP 2: DYNAMIC GRAPH CONSTRUCTION (Adjacency Matrix) ---
+        Q = self.W_query(node_features)
+        K = self.W_key(node_features)
+        V = self.W_value(node_features)
+        
+        adj_matrix = torch.bmm(Q, K.transpose(1, 2)) / math.sqrt(self.hidden_size)
+        adj_matrix = torch.softmax(adj_matrix, dim=-1) 
+        
+        # --- STEP 3: GRAPH CONVOLUTION (Message Passing) ---
+        gcn_out = torch.bmm(adj_matrix, V) 
+        
+        # --- STEP 4: GRAPH READOUT ---
+        graph_embedding = torch.mean(gcn_out, dim=1) 
+        
+        h_fused = self.ln(graph_embedding)
+        h_fused = self.backbone_drop(h_fused)
 
-        pred_state = self.state_head(h_last)
-        attack_logit = self.attack_head(h_last)
-        mitre_logit = self.mitre_head(h_last)
+        # --- STEP 5: PREDICTIONS ---
+        pred_state = self.state_head(h_fused)
+        attack_logit = self.attack_head(h_fused)
+        mitre_logit = self.mitre_head(h_fused)
 
         h_n = h_n.transpose(0, 1)
         c_n = c_n.transpose(0, 1)
+
         return pred_state, attack_logit, mitre_logit, (h_n, c_n)
 
 
