@@ -5,6 +5,7 @@ import json
 import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
+import traceback
 
 import numpy as np
 import pandas as pd
@@ -52,6 +53,9 @@ _agg_names: List[str] = []
 _live_state: Dict = {}
 _uploaded_scenarios: Dict = {}
 
+# ─── MITRE ATT&CK RAG (loaded once at startup) ────────────────────────────
+_rag_service = None
+
 def _load_checkpoint():
     global _checkpoint, _model, _scaler, _feature_cols, _seq_len
     global _best_threshold, _benign_mse_baseline, _k_steps, _window_size, _agg_names
@@ -93,6 +97,26 @@ def _load_checkpoint():
 
 
 _load_checkpoint()
+
+
+def _init_rag():
+    """Initialize the MITRE ATT&CK RAG service (best-effort, never crashes server)."""
+    global _rag_service
+    try:
+        from mitre_rag.service import MitreRAGService
+        _rag_service = MitreRAGService()
+        if _rag_service.is_ready:
+            print("[RAG] MITRE ATT&CK RAG initialized successfully.")
+        else:
+            print("[RAG] RAG service created but index not ready. "
+                  "Run 'python -m mitre_rag.scripts.build_index' to build the index.")
+    except Exception as e:
+        print(f"[RAG] Failed to initialize RAG service: {e}")
+        print("[RAG] RAG features will be unavailable. The server continues without RAG.")
+        _rag_service = None
+
+
+_init_rag()
 
 # ─── scenarios.json persistence (static scenarios + ingested uploads) ──────
 
@@ -653,6 +677,20 @@ def _run_model_inference(
         ts_str = timestamps[i].strftime("%H:%M:%S")
         fl_count = counts[i]
 
+        # ─── MITRE RAG enrichment ────────────────────────────────────
+        rag_result = None
+        if _rag_service is not None:
+            try:
+                rag_result = _rag_service.query(
+                    predicted_stage=MITRE_NAMES.get(mitre_cls, "Unknown"),
+                    attack_probability=float(current_risk),
+                    important_features=shap_features,
+                    flow_count=fl_count,
+                )
+            except Exception as e:
+                print(f"[RAG] Query error: {e}")
+                rag_result = None
+
         windows_out.append(
             {
                 "step_index": len(windows_out),
@@ -663,6 +701,7 @@ def _run_model_inference(
                 "current_stage": MITRE_NAMES.get(mitre_cls, "Unknown"),
                 "trajectory": trajectory,
                 "shap_features": shap_features,
+                "rag": rag_result,
                 # TEMPORARY diagnostics — remove once current_risk is verified.
                 "_debug": {
                     "attack_head_prob": round(float(attack_head_prob), 4),
@@ -764,6 +803,14 @@ async def upload_csv(file: UploadFile = File(...)):
         "detection_summary": detection_summary,
         **scenario_entry,
     }
+
+
+@app.get("/api/rag/status")
+def rag_status():
+    """Diagnostic endpoint for the MITRE ATT&CK RAG service."""
+    if _rag_service is None:
+        return {"ready": False, "index_size": 0, "embedding_model_loaded": False}
+    return _rag_service.status()
 
 
 if __name__ == "__main__":

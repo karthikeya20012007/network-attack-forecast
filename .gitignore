@@ -46,3 +46,9 @@ pnpm-debug.log*
 *.pid
 *.log
 fabricated_attacks.csv
+
+# MITRE RAG (downloaded data + generated indices)
+mitre_rag/data/raw/
+mitre_rag/vectorstore/*.index
+mitre_rag/vectorstore/*.json
+mitre_rag/data/processed/

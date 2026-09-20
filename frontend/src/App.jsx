@@ -18,7 +18,9 @@ import {
   Server,
   PanelLeftClose,
   PanelLeftOpen,
-  Wifi
+  Wifi,
+  ExternalLink,
+  Sparkles
 } from 'lucide-react';
 import {
   LineChart,
@@ -952,6 +954,188 @@ export default function App() {
           {/* VIEW: MITRE */}
           {activeTab === 'MITRE' && (
             <div className="space-y-6">
+              {/* LIVE RAG ANALYSIS CARD */}
+              <div className="bg-white/[0.03] border border-white/10 p-6 rounded-2xl backdrop-blur-2xl shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-100 font-sans">
+                        Live MITRE ATT&CK RAG Analysis
+                      </h2>
+                      <p className="text-[13px] text-slate-400 font-sans">
+                        Semantic retrieval & evidence-grounded technique mapping from observed network dynamics
+                      </p>
+                    </div>
+                  </div>
+                  {currentWindow?.rag?.technique_id && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-mono font-medium border ${
+                      (currentWindow.rag.confidence >= 0.75)
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : (currentWindow.rag.confidence >= 0.5)
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        : 'bg-red-500/10 text-red-400 border-red-500/30'
+                    }`}>
+                      Confidence: {(currentWindow.rag.confidence * 100).toFixed(1)}% ({
+                        currentWindow.rag.confidence >= 0.75 ? 'HIGH' : currentWindow.rag.confidence >= 0.5 ? 'MEDIUM' : 'LOW'
+                      })
+                    </span>
+                  )}
+                </div>
+
+                {currentWindow?.rag?.technique_id ? (
+                  <div className="space-y-4">
+                    {/* Primary Matched Technique Banner */}
+                    <div className="p-5 rounded-xl bg-gradient-to-r from-emerald-950/30 via-slate-900/40 to-slate-900/30 border border-emerald-500/30">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center space-x-3">
+                          <span className="font-mono text-base font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">
+                            {currentWindow.rag.technique_id}
+                          </span>
+                          <span className="text-base font-semibold text-slate-100 font-sans">
+                            {currentWindow.rag.technique_name}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-mono text-slate-300 bg-white/5 px-2.5 py-1 rounded border border-white/10">
+                            Tactic: <strong className="text-emerald-300">{currentWindow.rag.tactic}</strong>
+                          </span>
+                          {currentWindow.rag.mitre_url && (
+                            <a
+                              href={currentWindow.rag.mitre_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center space-x-1 text-xs font-mono text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 transition"
+                            >
+                              <span>ATT&CK Doc</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {currentWindow.rag.mitre_description && (
+                        <p className="text-[13px] text-slate-300 font-sans leading-relaxed mt-2 line-clamp-3">
+                          {currentWindow.rag.mitre_description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Reasoning & Evidence */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Reason */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                        <div className="text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>Inference Rationale</span>
+                        </div>
+                        <p className="text-[13px] text-slate-300 font-sans leading-relaxed">
+                          {currentWindow.rag.reason}
+                        </p>
+                      </div>
+
+                      {/* Evidence & Attributed Features */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                        <div className="text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>Attributed Flow Evidence</span>
+                        </div>
+                        {currentWindow.rag.evidence && currentWindow.rag.evidence.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {currentWindow.rag.evidence.map((ev, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs font-mono py-1 px-2 rounded bg-white/[0.02] border border-white/5">
+                                <span className="text-slate-300 truncate max-w-[70%]">{ev.feature}</span>
+                                <span className="text-emerald-400 font-semibold">{ev.importance}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500 italic">No feature attribution data recorded.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Scoring Decomposition */}
+                    {currentWindow.rag.scores && (
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                        <div className="text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider mb-3">
+                          Score Decomposition (Transparent Ranking)
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                            <div className="text-[11px] text-slate-400 font-sans">Semantic Match</div>
+                            <div className="text-sm font-mono font-bold text-slate-200 mt-1">
+                              {(currentWindow.rag.scores.semantic_score * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                            <div className="text-[11px] text-slate-400 font-sans">Tactic Alignment</div>
+                            <div className="text-sm font-mono font-bold text-slate-200 mt-1">
+                              {(currentWindow.rag.scores.tactic_score * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                            <div className="text-[11px] text-slate-400 font-sans">Evidence Grounding</div>
+                            <div className="text-sm font-mono font-bold text-slate-200 mt-1">
+                              {(currentWindow.rag.scores.evidence_score * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                            <div className="text-[11px] text-slate-400 font-sans">Combined Retrieval</div>
+                            <div className="text-sm font-mono font-bold text-emerald-400 mt-1">
+                              {(currentWindow.rag.scores.final_retrieval_score * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Limitations & Confidence Bounds */}
+                    {currentWindow.rag.limitations && (
+                      <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-300 text-[12px] font-sans flex items-start space-x-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                        <span><strong>Limitations & Ambiguity:</strong> {currentWindow.rag.limitations}</span>
+                      </div>
+                    )}
+
+                    {/* Alternative Candidates */}
+                    {currentWindow.rag.candidates && currentWindow.rag.candidates.length > 0 && (
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                        <div className="text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                          Alternative Technique Candidates
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                          {currentWindow.rag.candidates.map((cand, idx) => (
+                            <div key={idx} className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                              <div>
+                                <span className="font-mono font-semibold text-slate-200 mr-2">{cand.technique_id}</span>
+                                <span className="text-slate-400 font-sans">{cand.technique_name}</span>
+                              </div>
+                              <span className="font-mono text-emerald-400/80 text-[11px] ml-2 shrink-0">
+                                {(cand.confidence * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-8 rounded-xl bg-white/[0.02] border border-white/10 text-center">
+                    <ShieldCheck className="w-10 h-10 text-emerald-500/50 mx-auto mb-3" />
+                    <div className="text-emerald-400 font-mono font-semibold text-sm mb-2">
+                      {currentRisk < 0.5 ? "BENIGN NETWORK TRAFFIC" : "NO TECHNIQUE MATCH"}
+                    </div>
+                    <p className="text-slate-400 text-[13px] font-sans max-w-lg mx-auto">
+                      {currentWindow?.rag?.reason || "Autonomous RAG retrieval active. Evaluates and maps threat vectors whenever network risk exceeds operational threshold."}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* TACTIC MATRIX ALIGNMENT */}
               <div className="bg-white/[0.03] border border-white/10 p-6 rounded-2xl backdrop-blur-2xl shadow-xl">
                 <h2 className="text-lg font-semibold text-slate-100 font-sans mb-1">MITRE ATT&CK Matrix Alignment (Live Inferred)</h2>
                 <p className="text-[13px] text-slate-400 font-sans mb-6">Autonomous mapping of predicted latent network states to enterprise tactics based on current trajectory.</p>
