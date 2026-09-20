@@ -18,7 +18,9 @@ if [ -f "$BASE_DIR/.env" ]; then
     set +a
 fi
 
-INTERFACE="${1:-${NETWORK_INTERFACE:-eth0}}"
+DEFAULT_IFACE=$(ip route 2>/dev/null | awk '/^default/ {print $5}' | head -n 1)
+DEFAULT_IFACE="${DEFAULT_IFACE:-eth0}"
+INTERFACE="${1:-${NETWORK_INTERFACE:-$DEFAULT_IFACE}}"
 CIC_FLOW_DIR="${CIC_FLOW_DIR:-$BASE_DIR/data/cic/flows}"
 CIC_ROTATION="${CIC_ROTATION_MINUTES:-1}"
 

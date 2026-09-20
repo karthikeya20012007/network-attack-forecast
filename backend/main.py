@@ -148,12 +148,13 @@ async def redis_stream_consumer():
     }
 
     last_inferred_ts = None
-
+    last_poll_time = pd.Timestamp.now()
 
     while True:
         try:
             # Block for up to 2 seconds waiting for new stream entries
             response = await r.xread({"cic:flows:stream": last_id}, count=1000, block=2000)
+            last_poll_time = pd.Timestamp.now()
             new_entries = 0
             if response:
                 for stream_key, entries in response:
@@ -200,10 +201,14 @@ async def redis_stream_consumer():
             # Stale logic
             now_dt = pd.Timestamp.now()
             lag_seconds = (now_dt - max_dt).total_seconds()
+            poll_lag = (now_dt - last_poll_time).total_seconds()
+            
             if is_disconnected:
                 telemetry_status = "DISCONNECTED"
-            elif lag_seconds > 120:
+            elif poll_lag > 120:
                 telemetry_status = "STALE"
+            elif lag_seconds > 120:
+                telemetry_status = "QUIET"
             else:
                 telemetry_status = "LIVE"
 
@@ -222,8 +227,8 @@ async def redis_stream_consumer():
                     # Enforce Rule 5: A network state is considered complete only after
                     # its corresponding 1-minute window has closed.
                     if len(timestamps) > 0:
-                        max_window = timestamps[-1]
-                        complete_idx = [i for i, ts in enumerate(timestamps) if ts < max_window]
+                        now_bucket = pd.Timestamp.now().floor('1min')
+                        complete_idx = [i for i, ts in enumerate(timestamps) if ts < now_bucket]
                         if complete_idx:
                             states = states[complete_idx]
                             timestamps = [timestamps[i] for i in complete_idx]
@@ -276,7 +281,7 @@ async def redis_stream_consumer():
                     else:
                         if new_entries > 0:
                             print(f"[Live Inference] Warming up... (States: {num_complete}/{_seq_len})", flush=True)
-                        if telemetry_status == "LIVE":
+                        if telemetry_status in ("LIVE", "QUIET"):
                             scenario_entry["metadata"]["telemetry_status"] = "WARMING_UP"
 
                         # Expose the completed warmup windows to the frontend without inference data
@@ -326,6 +331,12 @@ async def redis_stream_consumer():
             print(f"[Live Inference] Critical consumer error: {e}", flush=True)
             import traceback
             traceback.print_exc()
+            
+            # If we haven't successfully polled Redis in 120s, it's genuinely stale/dead
+            poll_lag = (pd.Timestamp.now() - last_poll_time).total_seconds()
+            if poll_lag > 120 and _live_state:
+                _live_state["metadata"]["telemetry_status"] = "DISCONNECTED"
+                
             await asyncio.sleep(2)
 
 
