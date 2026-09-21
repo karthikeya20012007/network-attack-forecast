@@ -332,7 +332,7 @@ export default function App() {
   }
 
   const currentWindow = data.current_window || null;
-  const currentRisk = currentWindow?.current_risk || 0;
+  const currentRisk = currentWindow?.current_risk ?? currentWindow?.attack_prob ?? 0;
   const trajectoryData = Array.isArray(currentWindow?.trajectory) ? currentWindow.trajectory : [];
   const shapFeatures = Array.isArray(currentWindow?.shap_features) ? currentWindow.shap_features : [];
 
@@ -380,13 +380,14 @@ export default function App() {
   ] : [];
 
   // Dynamic Attack Detection for Theme Switching
+  const riskValue = parseFloat(currentRisk);
   const isAttack = Boolean(
     currentWindow && (
-      currentRisk >= 0.5 ||
+      riskValue >= 0.4 ||
       currentWindow.is_attack === true ||
       (currentWindow.current_stage &&
-        !["Normal Operation", "Nominal", "Nominal / Benign", "Collecting Context..."].includes(currentWindow.current_stage) &&
-        (currentRisk >= 0.3 || currentWindow.current_stage.includes("(T") || currentWindow.current_stage.includes("TA")))
+        !["Normal Operation", "Nominal", "Nominal / Benign", "Collecting Context...", "Benign", "Warming Up"].includes(currentWindow.current_stage) &&
+        (riskValue >= 0.15 || currentWindow.current_stage.includes("(") || currentWindow.current_stage.includes("TA") || currentWindow.current_stage.includes("Reconnaissance") || currentWindow.current_stage.includes("Access") || currentWindow.current_stage.includes("Movement") || currentWindow.current_stage.includes("DoS") || currentWindow.current_stage.includes("Exploit")))
     )
   );
 
@@ -394,24 +395,29 @@ export default function App() {
   const theme = isAttack
     ? {
         isAttack: true,
-        bgMain: "bg-[#0d0607]",
-        bgSidebar: "bg-[#14080a]/60 border-red-900/30",
-        bgHeader: "bg-[#14090b]/60 border-red-900/30",
-        glowTop: "bg-red-700/25",
-        glowBottom: "bg-rose-950/40",
+        bgMain: "bg-[#180608]",
+        bgSidebar: "bg-[#220a0e]/85 border-red-900/50",
+        bgHeader: "bg-[#220a0e]/85 border-red-900/50",
+        glowTop: "bg-red-600/40",
+        glowBottom: "bg-rose-700/40",
         selection: "selection:bg-red-800 selection:text-white",
+
+        // Cards & Containers
+        cardBg: "bg-red-950/35",
+        cardBorder: "border-red-600/45",
+        cardShadow: "shadow-xl shadow-red-950/50",
 
         // Text & Accents
         primaryText: "text-red-400",
         primaryTextLight: "text-red-300",
         primaryTextDark: "text-red-500",
-        primaryBg: "bg-red-950/70",
+        primaryBg: "bg-red-950/80",
         primaryBgHover: "hover:bg-red-900/60",
-        primaryBorder: "border-red-700/50",
-        primaryShadow: "shadow-red-950/50",
+        primaryBorder: "border-red-600/50",
+        primaryShadow: "shadow-red-950/60",
 
         // Badges
-        badgeBg: "bg-red-950/80 border-red-700/60 text-red-200 shadow-lg shadow-red-950/80",
+        badgeBg: "bg-red-950/90 border-red-600/60 text-red-200 shadow-lg shadow-red-950/80",
         badgePing: "bg-red-500",
         badgeText: "🚨 ATTACK DETECTED",
 
@@ -421,8 +427,8 @@ export default function App() {
         subTitleText: "CRITICAL THREAT",
 
         // Buttons
-        btnPrimary: "bg-red-800/90 hover:bg-red-700 text-white shadow-lg shadow-red-950/70 border border-red-600/50",
-        btnLiveActive: "bg-red-600/80 hover:bg-red-500/80 text-white border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]",
+        btnPrimary: "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-950/70 border border-red-500/50",
+        btnLiveActive: "bg-red-600 hover:bg-red-500 text-white border-red-400 shadow-[0_0_18px_rgba(239,68,68,0.6)]",
         btnLiveInactive: "bg-red-950/40 hover:bg-red-900/60 border-red-800/50 text-red-300",
 
         // Chart
@@ -430,7 +436,7 @@ export default function App() {
         chartDot: "#ef4444",
 
         // Banner & Accents
-        bannerGradient: "from-red-950/40 via-slate-900/40 to-slate-900/30 border-red-500/40",
+        bannerGradient: "from-red-950/50 via-slate-900/40 to-slate-900/30 border-red-500/50",
         dotAccent: "bg-red-400",
         selectFocus: "focus:border-red-500",
         exportBtn: "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30",
@@ -444,6 +450,11 @@ export default function App() {
         glowTop: "bg-emerald-800/20",
         glowBottom: "bg-[#5a321e]/20",
         selection: "selection:bg-emerald-800 selection:text-white",
+
+        // Cards & Containers
+        cardBg: "bg-white/[0.03]",
+        cardBorder: "border-white/10",
+        cardShadow: "shadow-xl",
 
         // Text & Accents
         primaryText: "text-emerald-400",
@@ -631,18 +642,42 @@ export default function App() {
 
         <div className="p-8 space-y-6">
           <ErrorBoundary>
+          {/* Active Attack Alert Banner */}
+          {isAttack && (
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-red-950/90 via-red-900/50 to-red-950/90 border border-red-500/70 shadow-2xl shadow-red-950/80 backdrop-blur-xl animate-pulse">
+              <div className="flex items-center space-x-3.5">
+                <div className="p-2.5 rounded-xl bg-red-600/30 border border-red-500/60 text-red-200 shadow-md shadow-red-950/60">
+                  <AlertTriangle className="w-5 h-5 text-red-400 animate-bounce" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2.5">
+                    <span className="text-sm font-bold text-red-100 font-sans tracking-wider uppercase">Active Cyber Attack Detected</span>
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-mono font-bold tracking-wider">DEFCON 1</span>
+                  </div>
+                  <div className="text-xs text-red-300/90 font-sans mt-0.5">
+                    Target: <span className="font-mono font-semibold text-white">{data.metadata?.target_asset || "192.168.1.50"}</span> &bull; Current Stage: <span className="font-semibold text-red-100">{currentWindow?.current_stage || "Adversarial Activity"}</span> &bull; Attack Probability: <span className="font-mono font-bold text-white">{(currentRisk * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[11px] font-mono text-red-400 uppercase tracking-wider">System State</div>
+                <div className="text-xs font-semibold text-red-200">Adversarial Alert Active</div>
+              </div>
+            </div>
+          )}
+
           {/* VIEW: WORLD MODEL */}
           {activeTab === 'World Model' && (
             <>
               {/* Metric Cards */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white/[0.03] border border-white/10 p-4 rounded-2xl backdrop-blur-2xl shadow-xl">
+                <div className={`${theme.cardBg} border ${theme.cardBorder} p-4 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} transition-all duration-500`}>
                   <div className="text-[11px] font-sans font-medium text-slate-400 tracking-wider">FLOW THROUGHPUT</div>
                   <div className="text-3xl font-semibold font-mono text-slate-100 mt-1">{currentWindow?.flow_count ?? (data.metadata?.rows_ingested || 0)} <span className="text-sm font-normal text-slate-400">/min</span></div>
                   <div className={`text-[11px] ${theme.primaryText} font-sans mt-1`}>{currentWindow ? "Aggregated Window" : "Live Stream Ingest"}</div>
                 </div>
 
-                <div className="bg-white/[0.03] border border-white/10 p-4 rounded-2xl backdrop-blur-2xl shadow-xl">
+                <div className={`${theme.cardBg} border ${theme.cardBorder} p-4 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} transition-all duration-500`}>
                   <div className="text-[11px] font-sans font-medium text-slate-400 tracking-wider">CAUSAL DIVERGENCE</div>
                   <div className="text-xl font-semibold font-sans text-amber-300 mt-2">
                     {!currentWindow || currentWindow.is_warmup ? (data.metadata?.telemetry_status === 'WARMING_UP' ? "Collecting Context" : "Awaiting Data") : currentRisk > 0.6 ? "Critical Anomaly" : currentRisk > 0.3 ? "Elevated Drift" : "Nominal Physics"}
@@ -650,7 +685,7 @@ export default function App() {
                   <div className="text-[11px] text-amber-400/80 font-sans mt-1">Latent State Transition</div>
                 </div>
 
-                <div className="bg-white/[0.03] border border-white/10 p-4 rounded-2xl backdrop-blur-2xl shadow-xl">
+                <div className={`${theme.cardBg} border ${theme.cardBorder} p-4 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} transition-all duration-500`}>
                   <div className="text-[11px] font-sans font-medium text-slate-400 tracking-wider">PROJECTED MITRE TACTIC</div>
                   <div className="text-sm font-semibold font-sans text-red-300 mt-2.5 truncate">
                     {currentWindow?.current_stage || (data.metadata?.telemetry_status === 'WARMING_UP' ? "Warming Up (States < 6)" : "Nominal / Benign")}
@@ -658,7 +693,7 @@ export default function App() {
                   <div className="text-[11px] text-red-400 font-sans mt-1">PyTorch 3-Head Classifier</div>
                 </div>
 
-                <div className="bg-white/[0.03] border border-white/10 p-4 rounded-2xl backdrop-blur-2xl shadow-xl">
+                <div className={`${theme.cardBg} border ${theme.cardBorder} p-4 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} transition-all duration-500`}>
                   <div className="text-[11px] font-sans font-medium text-slate-400 tracking-wider">ATTACK PROBABILITY</div>
                   <div className="text-3xl font-semibold font-mono text-[#e59866] mt-1">
                     {!currentWindow || currentWindow.is_warmup ? "---%" : `${(currentRisk * 100).toFixed(1)}%`}
@@ -668,7 +703,7 @@ export default function App() {
               </div>
 
               {/* Simulation Toolbar */}
-              <div className="flex justify-between items-center bg-white/[0.03] border border-white/10 px-5 py-3 rounded-2xl backdrop-blur-2xl shadow-lg">
+              <div className={`flex justify-between items-center ${theme.cardBg} border ${theme.cardBorder} px-5 py-3 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} transition-all duration-500`}>
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => setIsPlaying(!isPlaying)}
@@ -729,7 +764,7 @@ export default function App() {
               {/* Trajectory Plot + SHAP */}
               {!currentWindow || currentWindow.is_warmup ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 bg-white/[0.03] border border-white/10 p-8 rounded-2xl backdrop-blur-2xl shadow-xl flex flex-col items-center justify-center min-h-[260px] text-center font-mono">
+                  <div className={`lg:col-span-2 ${theme.cardBg} border ${theme.cardBorder} p-8 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} flex flex-col items-center justify-center min-h-[260px] text-center font-mono transition-all duration-500`}>
                     <Activity className="animate-spin w-6 h-6 text-emerald-400 mb-3" />
                     <div className="text-emerald-400 text-sm font-semibold mb-1">
                       {data.metadata?.telemetry_status === 'WARMING_UP' ? `WARMING UP (${data.metadata?.warmup_count || 0}/5)` : 'WAITING FOR LIVE TELEMETRY'}
@@ -738,14 +773,14 @@ export default function App() {
                       The PyTorch LSTM World Model requires 5 completed 1-minute historical windows before generating forward simulation trajectories (+1min to +5min).
                     </p>
                   </div>
-                  <div className="bg-white/[0.03] border border-white/10 p-8 rounded-2xl backdrop-blur-2xl shadow-xl flex flex-col items-center justify-center min-h-[260px] text-center font-mono text-slate-400 text-xs">
+                  <div className={`${theme.cardBg} border ${theme.cardBorder} p-8 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} flex flex-col items-center justify-center min-h-[260px] text-center font-mono text-slate-400 text-xs transition-all duration-500`}>
                     <Layers className="w-6 h-6 text-slate-500 mb-2" />
                     <span>SHAP gradient attribution will compute once the first live inference window completes.</span>
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 bg-white/[0.03] border border-white/10 p-6 rounded-2xl backdrop-blur-2xl shadow-xl">
+                  <div className={`lg:col-span-2 ${theme.cardBg} border ${theme.cardBorder} p-6 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} transition-all duration-500`}>
                     <div className="flex justify-between items-center mb-4">
                       <div>
                         <h2 className="text-[15px] font-semibold text-slate-100">Forward Simulation Trajectory P(S_t+k | S_t)</h2>
@@ -778,7 +813,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-white/[0.03] border border-white/10 p-6 rounded-2xl backdrop-blur-2xl shadow-xl flex flex-col">
+                  <div className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} flex flex-col transition-all duration-500`}>
                     <div>
                       <h2 className="text-[15px] font-semibold text-slate-100 mb-1">Explainability (SHAP / Gradient Weights)</h2>
                       <p className="text-[12px] text-slate-400 mb-4">Input saliency gradients w.r.t attack head</p>
@@ -824,7 +859,7 @@ export default function App() {
               )}
 
               {/* Real Model MITRE ATT&CK Stages */}
-              <div className="bg-white/[0.03] border border-white/10 p-6 rounded-2xl backdrop-blur-2xl shadow-xl">
+              <div className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-2xl backdrop-blur-2xl ${theme.cardShadow} transition-all duration-500`}>
                 <h2 className="text-[15px] font-semibold text-slate-100 mb-3">Model-Inferred MITRE ATT&CK Stages (Horizon Rollout)</h2>
                 {currentWindow ? (
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5">
