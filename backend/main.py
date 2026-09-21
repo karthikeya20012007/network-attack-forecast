@@ -346,6 +346,9 @@ async def redis_stream_consumer():
 
             # _live_state is updated in-place via scenario_entry. No disk save needed.
 
+        except (ConnectionRefusedError, redis.exceptions.ConnectionError) as e:
+            print(f"[Live Inference] Waiting for Redis at 127.0.0.1:6379 (Connection refused). Retrying in 5s... (Start Redis via: sudo service redis-server start)", flush=True)
+            await asyncio.sleep(5)
         except Exception as e:
             print(f"[Live Inference] Critical consumer error: {e}", flush=True)
             import traceback
