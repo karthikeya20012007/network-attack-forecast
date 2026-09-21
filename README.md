@@ -24,6 +24,7 @@ React Dashboard (Vite + Recharts)
 
 - `backend/`: FastAPI application, LSTM inference logic, and the pre-trained model.
 - `frontend/`: React + Vite dashboard application for visualizing forecasts and alerts.
+- `mitre_rag/`: MITRE ATT&CK RAG subsystem (STIX ingestion, FAISS vector store, evidence-grounded retriever).
 - `src/`: Python source code for the telemetry collectors and normalizers.
 - `scripts/`: Shell scripts for managing live packet capture (CICFlowMeter/Zeek).
 - `config/`: Application configuration loading.
@@ -35,6 +36,7 @@ React Dashboard (Vite + Recharts)
 
 - **Data Pipeline**: Zeek, CICFlowMeter (via Scapy), Redis
 - **Model**: PyTorch (CPU-only), Scikit-Learn
+- **RAG & Retrieval**: Sentence-Transformers (`all-MiniLM-L6-v2`), FAISS-CPU, STIX 2.1
 - **Backend API**: FastAPI, Uvicorn, Pandas, NumPy
 - **Frontend**: React 19, Vite, Tailwind CSS, Recharts, Lucide Icons
 
@@ -68,14 +70,21 @@ pip install -r requirements.txt
 ```
 > **Note:** The `requirements.txt` specifically requests the CPU-only version of PyTorch (`torch 2.14.0+cpu`). CUDA is intentionally unsupported in this environment.
 
-### 3. Frontend Dashboard
+### 3. MITRE ATT&CK RAG Index Building
+Build the persistent FAISS index from official MITRE Enterprise STIX data:
+```bash
+python -m mitre_rag.scripts.build_index
+```
+*This downloads the latest STIX bundle, extracts 800+ active techniques, computes 384-dimensional embeddings, and saves the vector store to `mitre_rag/vectorstore/mitre_techniques.index`.*
+
+### 4. Frontend Dashboard
 Install Node dependencies:
 ```bash
 cd frontend
 npm install
 ```
 
-### 4. Configuration
+### 5. Configuration
 Copy the example environment file:
 ```bash
 cp .env.example .env
@@ -96,27 +105,26 @@ sudo ./scripts/start_cic.sh
 *Flows are written to `data/cic/flows/` and pushed to the Redis key `cic:flows` with a 300-second retention.*
 
 ### 2. Backend API
-The backend loads `lstm_world_model.pth` automatically on startup.
+The backend loads `lstm_world_model.pth` and initializes the MITRE RAG service automatically on startup.
 ```bash
 cd backend
 source ../.venv/bin/activate
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
-*API available at http://localhost:8000*
+*API available at http://localhost:8000 (RAG status endpoint: `GET /api/rag/status`)*
 
 ### 3. Frontend Dashboard
 ```bash
 cd frontend
 npm run dev
 ```
-*Dashboard available at http://localhost:5173*
+*Dashboard available at http://localhost:5173 (Navigate to the **MITRE** tab for live RAG technique mappings)*
 
 ## Testing
 
-Run the full pytest suite:
+Run the full pytest suite (including RAG unit, evaluation, and e2e integration tests):
 ```bash
-source .venv/bin/activate
-pytest
+python -m pytest mitre_rag/tests/ -v
 ```
 
 To test the live Redis buffer:
@@ -126,9 +134,7 @@ To test the live Redis buffer:
 
 ## Current Limitations
 
-While the core architecture is established, the following features are **NOT** yet integrated into this repository:
+While the core architecture and MITRE ATT&CK RAG are established, the following features are **NOT** yet integrated into this repository:
 - Live streaming of real-time Redis flows directly into the LSTM model.
-- Model Explainability (SHAP).
-- MITRE ATT&CK RAG (Retrieval-Augmented Generation) context.
 - CALDERA Sandcat / n8n workflow integration.
 - Production-grade WSGI deployment.
