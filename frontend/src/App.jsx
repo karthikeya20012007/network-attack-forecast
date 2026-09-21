@@ -379,6 +379,108 @@ export default function App() {
     }))
   ] : [];
 
+  // Dynamic Attack Detection for Theme Switching
+  const isAttack = Boolean(
+    currentWindow && (
+      currentRisk >= 0.5 ||
+      currentWindow.is_attack === true ||
+      (currentWindow.current_stage &&
+        !["Normal Operation", "Nominal", "Nominal / Benign", "Collecting Context..."].includes(currentWindow.current_stage) &&
+        (currentRisk >= 0.3 || currentWindow.current_stage.includes("(T") || currentWindow.current_stage.includes("TA")))
+    )
+  );
+
+  // Theme Configuration (Green for Nominal / Red for Attack)
+  const theme = isAttack
+    ? {
+        isAttack: true,
+        bgMain: "bg-[#0d0607]",
+        bgSidebar: "bg-[#14080a]/60 border-red-900/30",
+        bgHeader: "bg-[#14090b]/60 border-red-900/30",
+        glowTop: "bg-red-700/25",
+        glowBottom: "bg-rose-950/40",
+        selection: "selection:bg-red-800 selection:text-white",
+
+        // Text & Accents
+        primaryText: "text-red-400",
+        primaryTextLight: "text-red-300",
+        primaryTextDark: "text-red-500",
+        primaryBg: "bg-red-950/70",
+        primaryBgHover: "hover:bg-red-900/60",
+        primaryBorder: "border-red-700/50",
+        primaryShadow: "shadow-red-950/50",
+
+        // Badges
+        badgeBg: "bg-red-950/80 border-red-700/60 text-red-200 shadow-lg shadow-red-950/80",
+        badgePing: "bg-red-500",
+        badgeText: "🚨 ATTACK DETECTED",
+
+        // Icon badge
+        iconBadge: "bg-red-900/50 border-red-500/50 shadow-red-950/70 text-red-300 animate-pulse",
+        subTitle: "text-red-400 font-mono font-semibold tracking-tight animate-pulse",
+        subTitleText: "CRITICAL THREAT",
+
+        // Buttons
+        btnPrimary: "bg-red-800/90 hover:bg-red-700 text-white shadow-lg shadow-red-950/70 border border-red-600/50",
+        btnLiveActive: "bg-red-600/80 hover:bg-red-500/80 text-white border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]",
+        btnLiveInactive: "bg-red-950/40 hover:bg-red-900/60 border-red-800/50 text-red-300",
+
+        // Chart
+        chartStroke: "#ef4444",
+        chartDot: "#ef4444",
+
+        // Banner & Accents
+        bannerGradient: "from-red-950/40 via-slate-900/40 to-slate-900/30 border-red-500/40",
+        dotAccent: "bg-red-400",
+        selectFocus: "focus:border-red-500",
+        exportBtn: "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30",
+        benchmarkRow: "bg-red-950/30 text-red-300",
+      }
+    : {
+        isAttack: false,
+        bgMain: "bg-[#070b0a]",
+        bgSidebar: "bg-[#0c1310]/50 border-white/10",
+        bgHeader: "bg-[#080d0b]/40 border-white/10",
+        glowTop: "bg-emerald-800/20",
+        glowBottom: "bg-[#5a321e]/20",
+        selection: "selection:bg-emerald-800 selection:text-white",
+
+        // Text & Accents
+        primaryText: "text-emerald-400",
+        primaryTextLight: "text-emerald-300",
+        primaryTextDark: "text-emerald-500",
+        primaryBg: "bg-emerald-950/70",
+        primaryBgHover: "hover:bg-emerald-900/60",
+        primaryBorder: "border-emerald-700/50",
+        primaryShadow: "shadow-emerald-950/50",
+
+        // Badges
+        badgeBg: "bg-emerald-950/60 border-emerald-800/40 text-emerald-300",
+        badgePing: "bg-emerald-400",
+        badgeText: "LIVE INFERENCE ACTIVE",
+
+        // Icon badge
+        iconBadge: "bg-emerald-800/40 border-emerald-500/40 shadow-emerald-950/60 text-emerald-300",
+        subTitle: "text-emerald-400 font-mono font-medium tracking-tight",
+        subTitleText: "WORLD MODEL",
+
+        // Buttons
+        btnPrimary: "bg-emerald-800/80 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-950/60 border border-emerald-600/40",
+        btnLiveActive: "bg-emerald-600/80 hover:bg-emerald-500/80 text-white border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)]",
+        btnLiveInactive: "bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-800/50 text-emerald-300",
+
+        // Chart
+        chartStroke: "#10b981",
+        chartDot: "#10b981",
+
+        // Banner & Accents
+        bannerGradient: "from-emerald-950/30 via-slate-900/40 to-slate-900/30 border-emerald-500/30",
+        dotAccent: "bg-emerald-400",
+        selectFocus: "focus:border-emerald-500",
+        exportBtn: "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30",
+        benchmarkRow: "bg-emerald-950/30 text-emerald-300",
+      };
+
   const navItems = [
     { id: 'World Model', icon: Cpu },
     { id: 'Overview', icon: LayoutDashboard },
@@ -389,27 +491,32 @@ export default function App() {
   ];
 
   return (
-    <div className="flex h-screen w-screen bg-[#070b0a] text-slate-200 font-sans overflow-hidden selection:bg-emerald-800 selection:text-white">
+    <div className={`flex h-screen w-screen ${theme.bgMain} text-slate-200 font-sans overflow-hidden ${theme.selection} transition-colors duration-700`}>
+
+      {/* Top Attack Glow Line */}
+      {isAttack && (
+        <div className="fixed top-0 inset-x-0 h-1 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 z-50 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.8)]" />
+      )}
 
       {/* Background Animated Glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden transition-all duration-1000 ease-out">
-        <div className="absolute w-[600px] h-[600px] bg-emerald-800/20 top-[-5%] left-[20%] rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute w-[500px] h-[500px] bg-[#5a321e]/20 bottom-[-10%] right-[15%] rounded-full blur-[140px]" />
+        <div className={`absolute w-[600px] h-[600px] ${theme.glowTop} top-[-5%] left-[20%] rounded-full blur-[140px] animate-pulse transition-colors duration-1000`} />
+        <div className={`absolute w-[500px] h-[500px] ${theme.glowBottom} bottom-[-10%] right-[15%] rounded-full blur-[140px] transition-colors duration-1000`} />
       </div>
 
       {/* Collapsible Sidebar */}
-      <aside className={`relative z-20 border-r border-white/10 bg-[#0c1310]/50 backdrop-blur-2xl transition-all duration-300 ease-in-out flex flex-col justify-between ${sidebarOpen ? 'w-64' : 'w-20'
+      <aside className={`relative z-20 border-r ${theme.bgSidebar} backdrop-blur-2xl transition-all duration-500 ease-in-out flex flex-col justify-between ${sidebarOpen ? 'w-64' : 'w-20'
         }`}>
         <div>
           <div className={`p-4 border-b border-white/10 flex ${sidebarOpen ? 'items-center justify-between' : 'flex-col items-center space-y-4'}`}>
             <div className={`flex items-center ${sidebarOpen ? 'space-x-3 overflow-hidden' : 'justify-center'}`}>
-              <div className="min-w-[32px] w-8 h-8 rounded-xl bg-emerald-800/40 border border-emerald-500/40 flex items-center justify-center shadow-lg shadow-emerald-950/60 backdrop-blur-md">
-                <ShieldCheck className="w-5 h-5 text-emerald-300" />
+              <div className={`min-w-[32px] w-8 h-8 rounded-xl ${theme.iconBadge} border flex items-center justify-center backdrop-blur-md transition-colors duration-500`}>
+                <ShieldCheck className="w-5 h-5" />
               </div>
               {sidebarOpen && (
                 <div className="truncate">
                   <div className="font-bold text-sm tracking-wide text-slate-100 font-sans">SENTINEL AI</div>
-                  <div className="text-[10px] text-emerald-400 font-mono font-medium tracking-tight">WORLD MODEL</div>
+                  <div className={theme.subTitle}>{theme.subTitleText}</div>
                 </div>
               )}
             </div>
@@ -432,11 +539,11 @@ export default function App() {
                   onClick={() => setActiveTab(item.id)}
                   title={!sidebarOpen ? item.id : ''}
                   className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 font-sans ${isActive
-                      ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-700/50 shadow-lg shadow-emerald-950/50 backdrop-blur-md'
+                      ? `${theme.primaryBg} ${theme.primaryTextLight} border ${theme.primaryBorder} shadow-lg ${theme.primaryShadow} backdrop-blur-md`
                       : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                     } ${!sidebarOpen ? 'justify-center px-0' : ''}`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? theme.primaryText : 'text-slate-400'}`} />
                   {sidebarOpen && <span>{item.id}</span>}
                 </button>
               );
@@ -445,29 +552,29 @@ export default function App() {
         </div>
 
         {sidebarOpen ? (
-          <div className="p-3.5 m-3 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-xl shadow-lg">
+          <div className={`p-3.5 m-3 rounded-xl bg-white/[0.03] border ${isAttack ? 'border-red-900/40 bg-red-950/20' : 'border-white/10'} backdrop-blur-xl shadow-lg transition-colors duration-500`}>
             <div className="flex items-center space-x-2 text-[11px] font-sans font-medium text-slate-400 mb-1">
-              <Server className="w-3.5 h-3.5 text-emerald-400" />
+              <Server className={`w-3.5 h-3.5 ${theme.primaryText}`} />
               <span>PROTECTED CII NODE</span>
             </div>
-            <div className="text-[12px] font-mono font-semibold text-emerald-300 truncate">
+            <div className={`text-[12px] font-mono font-semibold ${theme.primaryTextLight} truncate`}>
               {data.metadata?.target_asset || "192.168.1.50"}
             </div>
             <div className="text-[11px] text-slate-400 font-sans mt-0.5">SCADA Power Gateway</div>
           </div>
         ) : (
           <div className="p-3 mb-3 flex justify-center">
-            <Server className="w-4 h-4 text-emerald-400" />
+            <Server className={`w-4 h-4 ${theme.primaryText}`} />
           </div>
         )}
       </aside>
 
       {/* Main Viewport */}
       <main className="flex-1 relative z-10 flex flex-col overflow-y-auto">
-        <header className="h-16 border-b border-white/10 px-8 flex items-center justify-between bg-[#080d0b]/40 backdrop-blur-2xl">
+        <header className={`h-16 border-b ${theme.bgHeader} px-8 flex items-center justify-between backdrop-blur-2xl transition-colors duration-500`}>
           <div className="flex items-center space-x-3 text-xs font-sans">
             <span className="text-slate-500 font-medium">WORKSPACE //</span>
-            <span className="text-emerald-400 font-semibold uppercase tracking-wider">{activeTab}</span>
+            <span className={`${theme.primaryText} font-semibold uppercase tracking-wider`}>{activeTab}</span>
 
             {/* Scenario Dropdown Selector */}
             <div className="relative ml-4">
@@ -486,7 +593,7 @@ export default function App() {
                     setIsLiveTracking(false);
                   }
                 }}
-                className="bg-white/[0.04] border border-white/10 text-slate-200 text-xs rounded-lg px-2.5 py-1 font-mono focus:outline-none focus:border-emerald-500"
+                className={`bg-white/[0.04] border border-white/10 text-slate-200 text-xs rounded-lg px-2.5 py-1 font-mono focus:outline-none ${theme.selectFocus}`}
               >
                 {scenarios.map((s) => (
                   <option key={s.id} value={s.id} className="bg-[#0c1310] text-slate-200">
@@ -504,9 +611,9 @@ export default function App() {
                 <span>{data.metadata?.telemetry_status === 'WARMING_UP' ? `WARMING UP (${data.metadata?.warmup_count || 0}/5)` : 'WAITING FOR TELEMETRY'}</span>
               </div>
             ) : (
-              <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 text-[11px] font-mono font-medium backdrop-blur-md">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>LIVE INFERENCE ACTIVE</span>
+              <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full ${theme.badgeBg} text-[11px] font-mono font-medium backdrop-blur-md transition-colors duration-500`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${theme.badgePing} animate-ping`}></span>
+                <span>{theme.badgeText}</span>
               </div>
             )}
             <div className="text-slate-500 font-sans">TELEMETRY TIME: <span className="text-slate-300 font-mono ml-1">{currentWindow?.timestamp ? `${currentWindow.timestamp} IST` : '--'}</span></div>
@@ -514,7 +621,7 @@ export default function App() {
               {new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })} IST
             </span></div>
             {isLiveTracking && (
-              <div className="text-slate-500 font-sans">STATUS: <span className={`font-mono ml-1 ${data.metadata?.telemetry_status === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <div className="text-slate-500 font-sans">STATUS: <span className={`font-mono ml-1 ${data.metadata?.telemetry_status === 'LIVE' ? theme.primaryText : 'text-amber-400'}`}>
                 {data.metadata?.telemetry_status || (currentWindow ? 'LIVE' : 'WARMING_UP')}
                 {data.metadata?.telemetry_lag_seconds !== undefined && ` (${data.metadata.telemetry_lag_seconds}s lag)`}
               </span></div>
@@ -532,7 +639,7 @@ export default function App() {
                 <div className="bg-white/[0.03] border border-white/10 p-4 rounded-2xl backdrop-blur-2xl shadow-xl">
                   <div className="text-[11px] font-sans font-medium text-slate-400 tracking-wider">FLOW THROUGHPUT</div>
                   <div className="text-3xl font-semibold font-mono text-slate-100 mt-1">{currentWindow?.flow_count ?? (data.metadata?.rows_ingested || 0)} <span className="text-sm font-normal text-slate-400">/min</span></div>
-                  <div className="text-[11px] text-emerald-400 font-sans mt-1">{currentWindow ? "Aggregated Window" : "Live Stream Ingest"}</div>
+                  <div className={`text-[11px] ${theme.primaryText} font-sans mt-1`}>{currentWindow ? "Aggregated Window" : "Live Stream Ingest"}</div>
                 </div>
 
                 <div className="bg-white/[0.03] border border-white/10 p-4 rounded-2xl backdrop-blur-2xl shadow-xl">
@@ -565,7 +672,7 @@ export default function App() {
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => setIsPlaying(!isPlaying)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-emerald-800/80 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold tracking-wide transition shadow-lg shadow-emerald-950/60 border border-emerald-600/40 backdrop-blur-md"
+                    className={`flex items-center space-x-2 px-4 py-2 ${theme.btnPrimary} rounded-xl text-xs font-semibold tracking-wide transition backdrop-blur-md`}
                   >
                     {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                     <span>{isPlaying ? 'PAUSE TRAJECTORY' : 'SIMULATE FORWARD ROLLOUT'}</span>
@@ -603,18 +710,18 @@ export default function App() {
                         }
                       }
                     }}
-                    className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl border text-xs transition backdrop-blur-md font-mono ${isLiveTracking ? 'bg-emerald-600/80 hover:bg-emerald-500/80 text-white border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)]' : 'bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-800/50 text-emerald-300'}`}
+                    className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl border text-xs transition backdrop-blur-md font-mono ${isLiveTracking ? theme.btnLiveActive : theme.btnLiveInactive}`}
                   >
-                    <Activity className={`w-3.5 h-3.5 ${isLiveTracking ? 'text-white' : 'text-emerald-400'} animate-pulse`} />
+                    <Activity className={`w-3.5 h-3.5 ${isLiveTracking ? 'text-white' : theme.primaryText} animate-pulse`} />
                     <span>{isLiveTracking ? 'LIVE TRACKING ACTIVE' : 'TRACK LIVE TRAFFIC'}</span>
                   </button>
                   <label className="cursor-pointer flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 text-xs text-slate-300 transition backdrop-blur-md font-mono">
-                    <UploadCloud className="w-3.5 h-3.5 text-emerald-400" />
+                    <UploadCloud className={`w-3.5 h-3.5 ${theme.primaryText}`} />
                     <span>{isUploading ? "COMPUTING INFERENCE..." : selectedFile ? selectedFile : "INGEST RAW PCAP / CSV"}</span>
                     <input type="file" className="hidden" accept=".pcap,.csv" onChange={handleFileUpload} />
                   </label>
                   <div className="text-xs font-sans text-slate-400">
-                    WINDOW: <span className="text-emerald-400 font-semibold font-mono">{data.total_steps > 0 ? step + 1 : 0}</span> / <span className="font-mono">{data.total_steps || 0}</span>
+                    WINDOW: <span className={`${theme.primaryText} font-semibold font-mono`}>{data.total_steps > 0 ? step + 1 : 0}</span> / <span className="font-mono">{data.total_steps || 0}</span>
                   </div>
                 </div>
               </div>
@@ -644,7 +751,7 @@ export default function App() {
                         <h2 className="text-[15px] font-semibold text-slate-100">Forward Simulation Trajectory P(S_t+k | S_t)</h2>
                         <p className="text-[12px] text-slate-400">Autoregressive forward rollout from LSTM hidden states</p>
                       </div>
-                      <div className="text-[11px] font-mono font-medium px-3 py-1 rounded-lg bg-emerald-950/60 border border-emerald-700/50 text-emerald-300">
+                      <div className={`text-[11px] font-mono font-medium px-3 py-1 rounded-lg ${theme.primaryBg} border ${theme.primaryBorder} ${theme.primaryTextLight}`}>
                         LOOKAHEAD: +5min
                       </div>
                     </div>
@@ -665,7 +772,7 @@ export default function App() {
                             formatter={(val) => [`${(Number(val) * 100).toFixed(2)}%`, 'Attack Probability']}
                           />
                           <ReferenceLine x="T_0 (Observed)" stroke="#e59866" strokeDasharray="3 3" />
-                          <Line type="monotone" dataKey="probability" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} />
+                          <Line type="monotone" dataKey="probability" stroke={theme.chartStroke} strokeWidth={2.5} dot={{ r: 4, fill: theme.chartDot }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -725,13 +832,15 @@ export default function App() {
                       <div
                         key={idx}
                         className={`p-3 rounded-xl border transition-all duration-300 backdrop-blur-xl text-center ${stg.active
-                            ? 'bg-emerald-950/80 border-emerald-400 text-emerald-200 font-semibold shadow-lg shadow-emerald-950/80 scale-105'
+                            ? (isAttack
+                                ? 'bg-red-950/90 border-red-500 text-red-200 font-semibold shadow-lg shadow-red-950/80 scale-105'
+                                : 'bg-emerald-950/80 border-emerald-400 text-emerald-200 font-semibold shadow-lg shadow-emerald-950/80 scale-105')
                             : 'bg-white/[0.02] border-white/5 text-slate-400'
                           }`}
                       >
                         <div className="text-[10px] uppercase font-mono font-medium tracking-wider text-slate-400 mb-1">{stg.label}</div>
                         <div className="text-[12px] leading-snug font-sans font-medium text-slate-200 truncate">{stg.stage}</div>
-                        <div className="text-[10px] font-mono text-emerald-400 mt-1">P: {(stg.prob * 100).toFixed(1)}%</div>
+                        <div className={`text-[10px] font-mono ${theme.primaryText} mt-1`}>P: {(stg.prob * 100).toFixed(1)}%</div>
                       </div>
                     ))}
                   </div>
@@ -753,12 +862,12 @@ export default function App() {
                   <p className="text-[12px] text-slate-400">1-Minute Window Inference from PyTorch LSTM World Model</p>
                 </div>
                 {isLiveTracking ? (
-                  <div className="flex items-center space-x-2 text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-3 py-1.5 rounded-lg">
+                  <div className={`flex items-center space-x-2 text-[11px] font-mono ${theme.primaryText} ${theme.primaryBg} border ${theme.primaryBorder} px-3 py-1.5 rounded-lg`}>
                     <Wifi className="w-3.5 h-3.5 animate-pulse" />
                     <span>LIVE TRACKING: {tableData?.filter(r => r.is_attack).length || 0} / {tableData?.length || 0} ANOMALIES</span>
                   </div>
                 ) : uploadedResult?.detection_summary && (
-                  <div className="flex items-center space-x-2 text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-3 py-1.5 rounded-lg">
+                  <div className={`flex items-center space-x-2 text-[11px] font-mono ${theme.primaryText} ${theme.primaryBg} border ${theme.primaryBorder} px-3 py-1.5 rounded-lg`}>
                     <Wifi className="w-3.5 h-3.5 animate-pulse" />
                     <span>DETECTED {uploadedResult.detection_summary.anomalous_windows_detected} / {uploadedResult.detection_summary.total_windows_evaluated} ANOMALIES</span>
                   </div>
@@ -870,7 +979,7 @@ export default function App() {
                 </div>
                 <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-2xl shadow-xl">
                   <div className="text-[11px] font-sans font-medium uppercase tracking-wider text-slate-400 mb-1">PROACTIVE DEFENSE BUFFER</div>
-                  <div className="text-3xl font-semibold font-mono text-emerald-300">+{trajectoryData.length || 5} min</div>
+                  <div className={`text-3xl font-semibold font-mono ${theme.primaryTextLight}`}>+{trajectoryData.length || 5} min</div>
                   <p className="text-[13px] text-slate-400 mt-2">Forward horizon lookahead before compromise cascades.</p>
                 </div>
                 <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-2xl shadow-xl">
@@ -898,7 +1007,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                <h3 className="text-sm font-semibold text-emerald-400 mb-2 mt-2">Live Dynamic Detection</h3>
+                <h3 className={`text-sm font-semibold ${theme.primaryText} mb-2 mt-2`}>Live Dynamic Detection</h3>
                 {currentRisk >= 0.5 ? (
                   <div className="p-5 rounded-2xl bg-white/[0.03] border border-red-500/30 backdrop-blur-2xl shadow-xl flex justify-between items-center">
                     <div className="space-y-1">
@@ -926,7 +1035,7 @@ export default function App() {
                   </div>
                 )}
 
-                <h3 className="text-sm font-semibold text-emerald-400 mb-2 mt-6">Reference Threat Library (Static Policies)</h3>
+                <h3 className={`text-sm font-semibold ${theme.primaryText} mb-2 mt-6`}>Reference Threat Library (Static Policies)</h3>
                 {THREAT_VECTORS.map((vec) => (
                   <div key={vec.id} className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-2xl shadow-xl flex justify-between items-center">
                     <div className="space-y-1">
@@ -942,7 +1051,7 @@ export default function App() {
                         Recommended Defense: <span className="font-medium text-emerald-300">{vec.recommendation}</span>
                       </div>
                     </div>
-                    <button className="px-4 py-2 rounded-xl bg-emerald-800/60 hover:bg-emerald-700 text-white font-sans font-medium text-xs border border-emerald-500/40 shadow-lg shadow-emerald-950/50 transition">
+                    <button className={`px-4 py-2 rounded-xl ${theme.btnPrimary} font-sans font-medium text-xs transition`}>
                       ENFORCE ACL
                     </button>
                   </div>
@@ -958,7 +1067,7 @@ export default function App() {
               <div className="bg-white/[0.03] border border-white/10 p-6 rounded-2xl backdrop-blur-2xl shadow-xl">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <div className={`p-2.5 rounded-xl ${isAttack ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div>
@@ -973,7 +1082,7 @@ export default function App() {
                   {currentWindow?.rag?.technique_id && (
                     <span className={`px-3 py-1 rounded-full text-xs font-mono font-medium border ${
                       (currentWindow.rag.confidence >= 0.75)
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        ? (isAttack ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30')
                         : (currentWindow.rag.confidence >= 0.5)
                         ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                         : 'bg-red-500/10 text-red-400 border-red-500/30'
@@ -988,10 +1097,10 @@ export default function App() {
                 {currentWindow?.rag?.technique_id ? (
                   <div className="space-y-4">
                     {/* Primary Matched Technique Banner */}
-                    <div className="p-5 rounded-xl bg-gradient-to-r from-emerald-950/30 via-slate-900/40 to-slate-900/30 border border-emerald-500/30">
+                    <div className={`p-5 rounded-xl bg-gradient-to-r ${theme.bannerGradient}`}>
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                         <div className="flex items-center space-x-3">
-                          <span className="font-mono text-base font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">
+                          <span className={`font-mono text-base font-bold ${isAttack ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'} px-2.5 py-1 rounded border`}>
                             {currentWindow.rag.technique_id}
                           </span>
                           <span className="text-base font-semibold text-slate-100 font-sans">
@@ -1000,14 +1109,14 @@ export default function App() {
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-xs font-mono text-slate-300 bg-white/5 px-2.5 py-1 rounded border border-white/10">
-                            Tactic: <strong className="text-emerald-300">{currentWindow.rag.tactic}</strong>
+                            Tactic: <strong className={theme.primaryTextLight}>{currentWindow.rag.tactic}</strong>
                           </span>
                           {currentWindow.rag.mitre_url && (
                             <a
                               href={currentWindow.rag.mitre_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center space-x-1 text-xs font-mono text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 transition"
+                              className={`flex items-center space-x-1 text-xs font-mono ${isAttack ? 'text-red-400 hover:text-red-300 bg-red-500/10 border-red-500/20' : 'text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 border-emerald-500/20'} px-2.5 py-1 rounded border transition`}
                             >
                               <span>ATT&CK Doc</span>
                               <ExternalLink className="w-3 h-3" />
@@ -1028,7 +1137,7 @@ export default function App() {
                       {/* Reason */}
                       <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10">
                         <div className="text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${theme.dotAccent}`}></span>
                           <span>Inference Rationale</span>
                         </div>
                         <p className="text-[13px] text-slate-300 font-sans leading-relaxed">
@@ -1039,7 +1148,7 @@ export default function App() {
                       {/* Evidence & Attributed Features */}
                       <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10">
                         <div className="text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${theme.dotAccent}`}></span>
                           <span>Attributed Flow Evidence</span>
                         </div>
                         {currentWindow.rag.evidence && currentWindow.rag.evidence.length > 0 ? (
@@ -1047,7 +1156,7 @@ export default function App() {
                             {currentWindow.rag.evidence.map((ev, i) => (
                               <div key={i} className="flex items-center justify-between text-xs font-mono py-1 px-2 rounded bg-white/[0.02] border border-white/5">
                                 <span className="text-slate-300 truncate max-w-[70%]">{ev.feature}</span>
-                                <span className="text-emerald-400 font-semibold">{ev.importance}</span>
+                                <span className={`${theme.primaryText} font-semibold`}>{ev.importance}</span>
                               </div>
                             ))}
                           </div>
@@ -1084,7 +1193,7 @@ export default function App() {
                           </div>
                           <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
                             <div className="text-[11px] text-slate-400 font-sans">Combined Retrieval</div>
-                            <div className="text-sm font-mono font-bold text-emerald-400 mt-1">
+                            <div className={`text-sm font-mono font-bold ${theme.primaryText} mt-1`}>
                               {(currentWindow.rag.scores.final_retrieval_score * 100).toFixed(1)}%
                             </div>
                           </div>
@@ -1200,7 +1309,7 @@ export default function App() {
                         peakRisk: (currentRisk * 100).toFixed(2) + '%',
                         sessionId: currentScenarioId
                       })}
-                      className="px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold hover:bg-emerald-600/30 transition-colors flex items-center"
+                      className={`px-4 py-2 ${theme.exportBtn} rounded-lg text-xs font-semibold transition-colors flex items-center`}
                     >
                       Export CSV
                     </button>
@@ -1212,7 +1321,7 @@ export default function App() {
                         peakRisk: (currentRisk * 100).toFixed(2) + '%',
                         sessionId: currentScenarioId
                       })}
-                      className="px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold hover:bg-emerald-600/30 transition-colors flex items-center"
+                      className={`px-4 py-2 ${theme.exportBtn} rounded-lg text-xs font-semibold transition-colors flex items-center`}
                     >
                       Export PDF
                     </button>
@@ -1275,14 +1384,14 @@ export default function App() {
                         <td className="py-3 px-4 text-slate-400">0.0208</td>
                         <td className="py-3 px-4 text-red-400/80">5.24%</td>
                       </tr>
-                      <tr className="bg-emerald-950/30 text-emerald-300 font-semibold">
+                      <tr className={`${theme.benchmarkRow} font-semibold transition-colors duration-500`}>
                         <td className="py-3 px-4 flex items-center space-x-2 font-sans">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <CheckCircle2 className={`w-3.5 h-3.5 ${theme.primaryText}`} />
                           <span>Latent World Model (Trained)</span>
                         </td>
-                        <td className="py-3 px-4 text-emerald-400">+5.0 min (Forward Horizon)</td>
+                        <td className={`py-3 px-4 ${theme.primaryText}`}>+5.0 min (Forward Horizon)</td>
                         <td className="py-3 px-4">0.5837</td>
-                        <td className="py-3 px-4 text-emerald-400">2.47%</td>
+                        <td className={`py-3 px-4 ${theme.primaryText}`}>2.47%</td>
                       </tr>
                     </tbody>
                   </table>
